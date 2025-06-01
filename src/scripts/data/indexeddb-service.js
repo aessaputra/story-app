@@ -1,225 +1,153 @@
-const CACHE_NAME = 'story-app-cache-v1.5';
-const DICODING_API_DOMAIN = 'story-api.dicoding.dev';
-const UNPKG_DOMAIN = 'unpkg.com';
+const DB_NAME = 'story-app-db';
+const DB_VERSION = 1;
+const OBJECT_STORE_NAME = 'stories';
 
-const STATIC_ASSETS_TO_PRECACHE = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-];
+const dbPromise = new Promise((resolve, reject) => {
+  const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-const VAPID_PUBLIC_KEY = 'BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk';
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  const rawData = self.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS_TO_PRECACHE).catch(() => {}))
-      .then(() => self.skipWaiting())
-      .catch(() => {})
-  );
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName.startsWith('story-app-cache')) {
-            return caches.delete(cacheName);
-          }
-          return null;
-        })
-      ))
-      .then(() => self.clients.claim())
-      .catch(() => {})
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  if (request.method !== 'GET') return;
-
-  if (url.hostname === DICODING_API_DOMAIN) {
-    event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match(request)
-            .then((cachedResponse) => {
-              if (cachedResponse) return cachedResponse;
-              if (request.url.includes('/stories')) {
-                return new Response(JSON.stringify({ error: true, message: 'Offline. Data cerita tidak bisa diambil dan tidak ada di cache.', listStory: [] }), {
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              }
-              return new Response(JSON.stringify({ error: true, message: 'Offline. Request ke API tidak bisa diproses.' }), {
-                headers: { 'Content-Type': 'application/json' }
-              });
-            });
-        })
-    );
-    return;
-  }
-
-  if (url.hostname === UNPKG_DOMAIN) {
-    event.respondWith(
-      caches.match(request)
-        .then(cachedResponse => {
-          return cachedResponse || fetch(request).then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache));
-            }
-            return networkResponse;
-          }).catch(() => {});
-        })
-    );
-    return;
-  }
-
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request)
-        .then((cachedResponse) => {
-          return cachedResponse || fetch(request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
-            }
-            return networkResponse;
-          });
-        }).catch(() => {
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          return new Response('Resource not available offline.', {
-            status: 404,
-            headers: { 'Content-Type': 'text/plain' }
-          });
-        })
-    );
-    return;
-  }
-});
-
-self.addEventListener('push', (event) => {
-  let notificationData = {
-    title: 'Story App Pemberitahuan',
-    options: {
-      body: 'Anda mendapatkan pemberitahuan baru!',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-      vibrate: [200, 100, 200],
-      data: { url: '/' },
-    },
+  request.onerror = (event) => {
+    reject(event.target.errorCode);
   };
 
-  if (event.data) {
-    try {
-      const payload = event.data.json();
-      notificationData.title = payload.title || notificationData.title;
-      if (payload.options) {
-        notificationData.options = { ...notificationData.options, ...payload.options };
-        if (payload.options.data && payload.options.data.url) {
-          notificationData.options.data.url = payload.options.data.url;
-        }
-      }
-    } catch {
-      notificationData.options.body = event.data.text();
+  request.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains(OBJECT_STORE_NAME)) {
+      const objectStore = db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'id' });
+      objectStore.createIndex('name', 'name', { unique: false });
+      objectStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
-  }
-  
-  event.waitUntil(
-    self.registration.showNotification(notificationData.title, notificationData.options)
-  );
+  };
+
+  request.onsuccess = (event) => {
+    resolve(event.target.result);
+  };
 });
 
-self.addEventListener('notificationclick', (event) => {
-  const clickedNotification = event.notification;
-  clickedNotification.close();
+const IndexedDBService = {
+  async getAllStories() {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      const request = store.getAll();
 
-  const urlToOpen = clickedNotification.data && clickedNotification.data.url ?
-                    clickedNotification.data.url : '/';
-  const absoluteUrlToOpen = new URL(urlToOpen, self.location.origin).href;
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
+  },
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        let clientIsFound = false;
-        for (let i = 0; i < windowClients.length; i++) {
-          const client = windowClients[i];
-          if (client.url === absoluteUrlToOpen && 'focus' in client) {
-            client.focus();
-            clientIsFound = true;
-            break;
+  async getStoryById(id) {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
+  },
+
+  async putStory(story) {
+    if (!story || !story.id) {
+      return Promise.reject('Story or story.id is undefined');
+    }
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      const request = store.put(story);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
+  },
+
+  async putAllStories(stories) {
+    if (!stories || !Array.isArray(stories)) {
+      return Promise.reject('Invalid stories data for putAllStories');
+    }
+    const validStories = stories.filter(story => story && story.id);
+    if (validStories.length === 0) {
+      return Promise.resolve();
+    }
+
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      let completedOperations = 0;
+      let erroredOperations = 0;
+
+      validStories.forEach(story => {
+        const request = store.put(story);
+        request.onsuccess = () => {
+          completedOperations++;
+          if (completedOperations + erroredOperations === validStories.length) {
+            if (erroredOperations > 0) {
+              reject(new Error(`Failed to put ${erroredOperations} stories into IDB.`));
+            } else {
+              resolve();
+            }
           }
-        }
-        if (!clientIsFound && clients.openWindow) {
-          return clients.openWindow(absoluteUrlToOpen);
-        }
-      })
-      .catch(() => {})
-  );
-});
-
-self.addEventListener('message', event => {
-  if (!event.data || !event.data.type) return;
-
-  switch (event.data.type) {
-    case 'GET_REGISTRATION':
-      if (event.ports && event.ports[0]) {
-        event.ports[0].postMessage(self.registration);
-      }
-      break;
-    case 'SUBSCRIBE_PUSH':
-      self.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      })
-      .then(subscription => {
-        if (event.ports && event.ports[0]) {
-          event.ports[0].postMessage({ success: true, subscription: subscription.toJSON() });
-        }
-      })
-      .catch(error => {
-        if (event.ports && event.ports[0]) {
-          event.ports[0].postMessage({ success: false, error: error.message });
-        }
+        };
+        request.onerror = () => {
+          erroredOperations++;
+          if (completedOperations + erroredOperations === validStories.length) {
+            reject(new Error(`Failed to put ${erroredOperations} stories into IDB.`));
+          }
+        };
       });
-      break;
-    case 'SIMULATE_PUSH':
-      const { title, options } = event.data.payload;
-      if (title && options) {
-        self.registration.showNotification(title, options);
-      }
-      break;
-    default:
-      break;
+
+      transaction.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
+  },
+
+  async deleteStory(id) {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      const request = store.delete(id);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
+  },
+
+  async clearAllStories() {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OBJECT_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(OBJECT_STORE_NAME);
+      const request = store.clear();
+
+      request.onsuccess = () => {
+        resolve();
+      };
+      request.onerror = (event) => {
+        reject(event.target.errorCode);
+      };
+    });
   }
-});
+};
+
+export { IndexedDBService };

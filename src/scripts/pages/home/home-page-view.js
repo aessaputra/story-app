@@ -1,7 +1,7 @@
 import StoryApiModel from '../../data/story-api-model';
 import HomePagePresenter from './home-page-presenter';
 import { showFormattedDate } from '../../utils';
-import IndexedDBService from '../../data/indexeddb-service';
+import { IndexedDBService } from '../../data/indexeddb-service';
 import AuthService from '../../data/auth-service';
 
 function createStoryItemTemplate(story) {
@@ -25,9 +25,8 @@ function createStoryItemTemplate(story) {
 
 export default class HomePageView {
   constructor() {
-    // Simpan StoryApiModel sebagai properti instance view
-    this._storyApiModel = StoryApiModel; // <-- TAMBAHKAN BARIS INI
-    this._presenter = new HomePagePresenter({ view: this, storyApiModel: this._storyApiModel }); // Gunakan this._storyApiModel
+    this._storyApiModel = StoryApiModel;
+    this._presenter = new HomePagePresenter({ view: this, storyApiModel: this._storyApiModel });
     this._storiesListElement = null;
     this._maps = {};
     this._storyItems = [];
@@ -54,7 +53,7 @@ export default class HomePageView {
     
     const clearCacheButton = document.querySelector('#clear-cache-button');
     if (clearCacheButton) {
-        clearCacheButton.addEventListener('click', async () => {
+        this._clearCacheButtonClickHandler = async () => {
             try {
                 await IndexedDBService.clearAllStories();
                 alert('Cached stories cleared! Please refresh.');
@@ -63,7 +62,8 @@ export default class HomePageView {
                 console.error('Failed to clear cached stories:', error);
                 alert('Failed to clear cached stories.');
             }
-        });
+        };
+        clearCacheButton.addEventListener('click', this._clearCacheButtonClickHandler);
     }
     
     await this._loadAndDisplayStories();
@@ -73,25 +73,24 @@ export default class HomePageView {
     this.showLoading();
     try {
       let stories;
-      // Pastikan this._storyApiModel sudah diinisialisasi
-      if (!this._storyApiModel) { // Pemeriksaan tambahan untuk keamanan
+      if (!this._storyApiModel) {
           this.showError('Story API model is not initialized.');
           return;
       }
 
       if (navigator.onLine && AuthService.isLoggedIn()) {
-        console.log('Online: Fetching stories from API');
-        stories = await this._storyApiModel.getAllStories(); // Sekarang ini seharusnya tidak undefined
+        console.info('Online: Fetching stories from API');
+        stories = await this._storyApiModel.getAllStories();
         if (stories && stories.length > 0) {
           await IndexedDBService.clearAllStories(); 
           await IndexedDBService.putAllStories(stories);
-          console.log('Stories fetched from API and saved to IDB');
-        } else if (stories.length === 0) {
-           console.log('No stories from API, trying IDB');
+          console.info('Stories fetched from API and saved to IDB');
+        } else if (!stories || stories.length === 0) {
+           console.info('No stories from API or API returned empty/null, trying IDB');
            stories = await IndexedDBService.getAllStories();
         }
       } else {
-        console.log('Offline or not logged in: Fetching stories from IndexedDB');
+        console.info('Offline or not logged in: Fetching stories from IndexedDB');
         stories = await IndexedDBService.getAllStories();
         if (!stories || stories.length === 0) {
           if(!AuthService.isLoggedIn()){
@@ -101,12 +100,11 @@ export default class HomePageView {
           }
           return;
         }
-        console.log('Stories fetched from IndexedDB');
+        console.info('Stories fetched from IndexedDB');
       }
       this.displayStories(stories);
     } catch (error) {
       console.error('Error loading stories:', error);
-      // Coba fallback ke IndexedDB jika error API saat online
       if (navigator.onLine && AuthService.isLoggedIn()) {
         console.warn('API fetch failed, attempting to load from IndexedDB as fallback...');
         try {
@@ -120,12 +118,7 @@ export default class HomePageView {
           console.error('Error fetching from IndexedDB after API failure:', idbError);
         }
       }
-      // Perbarui pesan error jika _storyApiModel adalah masalahnya
-      if (error.message.includes("Cannot read properties of undefined (reading 'getAllStories')")) {
-          this.showError('Error: Story API model is undefined. Please try refreshing the page.');
-      } else {
-          this.showError(error.message || 'Failed to retrieve stories.');
-      }
+      this.showError(error.message || 'Failed to retrieve stories.');
     }
   }
 
@@ -266,7 +259,7 @@ export default class HomePageView {
 
   showError(message) {
     if (this._storiesListElement) {
-      this._storiesListElement.innerHTML = `<p class="error-message">Error: ${message}</p>`; // Pesan error yang lebih generik dari sini
+      this._storiesListElement.innerHTML = `<p class="error-message">Error: ${message}</p>`;
     }
   }
 
@@ -275,10 +268,11 @@ export default class HomePageView {
         this._storiesListElement.removeEventListener('keydown', this._handleStoryItemKeydown.bind(this));
     }
     const clearCacheButton = document.querySelector('#clear-cache-button');
-    if (clearCacheButton && clearCacheButton.parentNode) { 
-        clearCacheButton.removeEventListener('click', clearCacheButton._clickHandler); // Hapus event listener jika disimpan
-        clearCacheButton.parentNode.removeChild(clearCacheButton);
+    if (clearCacheButton && this._clearCacheButtonClickHandler) { 
+        clearCacheButton.removeEventListener('click', this._clearCacheButtonClickHandler);
     }
+    this._clearCacheButtonClickHandler = null;
+
     Object.values(this._maps).forEach(mapData => {
       if (mapData && mapData.map && mapData.map.remove) {
         mapData.map.remove(); 
@@ -286,6 +280,6 @@ export default class HomePageView {
     });
     this._maps = {}; 
     this._storyItems = []; 
-    console.log('HomePageView unloaded, maps cleaned up.');
+    console.info('HomePageView unloaded, maps and listeners cleaned up.');
   }
 }
