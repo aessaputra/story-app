@@ -9,6 +9,20 @@ export default class AddStoryPageView {
     this._mapMarker = null;
     this._videoStream = null;
     this._selectedPhotoFile = null;
+
+    this._descriptionInput = null;
+    this._photoStatus = null;
+    this._imagePreview = null;
+    this._cameraPreview = null;
+    this._photoCanvas = null;
+    this._startCameraButton = null;
+    this._capturePhotoButton = null;
+    this._photoFileInput = null;
+    this._latitudeInput = null;
+    this._longitudeInput = null;
+    this._selectedCoordsInfo = null;
+    this._submitButton = null;
+    this._messageElement = null;
   }
 
   render() {
@@ -118,8 +132,8 @@ export default class AddStoryPageView {
                     this._map.setView(userCoords, 13);
                     this._updateSelectedCoordinates(userCoords[0], userCoords[1]);
                     this._mapMarker = L.marker(userCoords, { draggable: true }).addTo(this._map)
-                                        .bindPopup('Your current location. Drag to adjust.')
-                                        .openPopup();
+                                         .bindPopup('Your current location. Drag to adjust.')
+                                         .openPopup();
                     this._mapMarker.on('dragend', (e) => {
                         const { lat, lng } = e.target.getLatLng();
                         this._updateSelectedCoordinates(lat, lng);
@@ -128,7 +142,7 @@ export default class AddStoryPageView {
                 () => {
                     this._selectedCoordsInfo.textContent = 'Could not get current location. Using default. Click map to change.';
                     this._mapMarker = L.marker(defaultCoords, { draggable: true }).addTo(this._map)
-                                      .bindPopup('Default location. Drag to adjust.');
+                                    .bindPopup('Default location. Drag to adjust.');
                     this._mapMarker.on('dragend', (e) => {
                         const { lat, lng } = e.target.getLatLng();
                         this._updateSelectedCoordinates(lat, lng);
@@ -137,8 +151,9 @@ export default class AddStoryPageView {
                 }
             );
         } else {
+            this._selectedCoordsInfo.textContent = 'Geolocation not supported. Using default. Click map to change.';
             this._mapMarker = L.marker(defaultCoords, { draggable: true }).addTo(this._map)
-                              .bindPopup('Default location. Drag to adjust.');
+                                     .bindPopup('Default location. Drag to adjust.');
             this._mapMarker.on('dragend', (e) => {
                 const { lat, lng } = e.target.getLatLng();
                 this._updateSelectedCoordinates(lat, lng);
@@ -150,8 +165,8 @@ export default class AddStoryPageView {
             this._updateSelectedCoordinates(lat, lng);
             if (!this._mapMarker) {
                 this._mapMarker = L.marker(e.latlng, { draggable: true }).addTo(this._map)
-                                    .bindPopup('Selected location. Drag to adjust.')
-                                    .openPopup();
+                                         .bindPopup('Selected location. Drag to adjust.')
+                                         .openPopup();
                 this._mapMarker.on('dragend', (ev) => {
                     const { lat: newLat, lng: newLng } = ev.target.getLatLng();
                     this._updateSelectedCoordinates(newLat, newLng);
@@ -167,6 +182,71 @@ export default class AddStoryPageView {
     this._latitudeInput.value = lat;
     this._longitudeInput.value = lon;
     this._selectedCoordsInfo.textContent = `Coordinates: Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`;
+  }
+
+  async _resizeAndCompressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        
+        this._photoCanvas.width = width;
+        this._photoCanvas.height = height;
+        const ctx = this._photoCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        this._photoCanvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas to Blob conversion failed'));
+              return;
+            }
+            if (blob.size > 1000000 && quality > 0.3) {
+              console.warn(
+                `Resized image at quality ${quality} still large: ${Math.round(blob.size / 1024)}KB. Retrying with lower quality.`,
+              );
+              this._resizeAndCompressImage(file, maxWidth, maxHeight, quality - 0.2)
+                  .then(resolve)
+                  .catch(reject);
+              return;
+            }
+             if (blob.size > 1000000) {
+                console.warn(
+                 `Resized image still too large after quality reduction: ${Math.round(blob.size / 1024)}KB. Max dimensions might be too high or image is complex.`
+                );
+             }
+
+            const newFileName = file.name.split('.').slice(0, -1).join('.') + '.jpg';
+            resolve(new File([blob], newFileName, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            }));
+          },
+          'image/jpeg',
+          quality,
+        );
+        URL.revokeObjectURL(img.src);
+      };
+
+      img.onerror = (error) => {
+        URL.revokeObjectURL(img.src);
+        reject(error);
+      };
+    });
   }
 
   _initCameraControls() {
@@ -198,38 +278,61 @@ export default class AddStoryPageView {
         this.showError('Camera not ready, video dimensions are zero. Please wait a moment and try again.');
         return;
       }
+      
       this._photoCanvas.width = this._cameraPreview.videoWidth;
       this._photoCanvas.height = this._cameraPreview.videoHeight;
       const context = this._photoCanvas.getContext('2d');
       context.drawImage(this._cameraPreview, 0, 0, this._photoCanvas.width, this._photoCanvas.height);
-      this._photoCanvas.toBlob((blob) => {
+
+      this._photoCanvas.toBlob(async (blob) => {
         if (blob) {
-          this._selectedPhotoFile = new File([blob], `capture-${Date.now()}.png`, { type: 'image/png' });
-          this._photoStatus.textContent = `Photo captured: ${this._selectedPhotoFile.name}`;
-          this._imagePreview.src = URL.createObjectURL(this._selectedPhotoFile);
-          this._imagePreview.style.display = 'block';
-          this._cameraPreview.style.display = 'none';
+          try {
+            const originalFile = new File([blob], `capture-${Date.now()}.png`, { type: 'image/png' });
+            this._selectedPhotoFile = await this._resizeAndCompressImage(originalFile);
+            
+            this._photoStatus.textContent = `Photo captured and processed: ${this._selectedPhotoFile.name} (${Math.round(this._selectedPhotoFile.size / 1024)}KB)`;
+            this._imagePreview.src = URL.createObjectURL(this._selectedPhotoFile);
+            this._imagePreview.style.display = 'block';
+            this._cameraPreview.style.display = 'none';
+          } catch (error) {
+            console.error('Error processing captured image:', error);
+            this.showError('Failed to process captured photo.');
+            this._selectedPhotoFile = null;
+          }
         } else {
           this.showError('Failed to capture photo (blob is null).');
+          this._selectedPhotoFile = null;
         }
+        this._stopCameraStream(); 
       }, 'image/png');
-      this._stopCameraStream();
     });
   }
 
   _initFileInput() {
-    this._photoFileInput.addEventListener('change', (event) => {
+    this._photoFileInput.addEventListener('change', async (event) => {
       if (event.target.files && event.target.files[0]) {
         this._stopCameraStream();
-        this._selectedPhotoFile = event.target.files[0];
-        this._photoStatus.textContent = `File selected: ${this._selectedPhotoFile.name}`;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this._imagePreview.src = e.target.result;
-            this._imagePreview.style.display = 'block';
-            this._cameraPreview.style.display = 'none';
+        const originalFile = event.target.files[0];
+
+        try {
+          this._selectedPhotoFile = await this._resizeAndCompressImage(originalFile);
+          
+          this._photoStatus.textContent = `File selected and processed: ${this._selectedPhotoFile.name} (${Math.round(this._selectedPhotoFile.size / 1024)}KB)`;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              this._imagePreview.src = e.target.result;
+              this._imagePreview.style.display = 'block';
+              this._cameraPreview.style.display = 'none';
+          }
+          reader.readAsDataURL(this._selectedPhotoFile);
+        } catch (error) {
+          console.error('Error processing selected image:', error);
+          this.showError('Failed to process selected photo.');
+          this._selectedPhotoFile = null;
+          this._imagePreview.style.display = 'none';
+          this._imagePreview.src = '#';
+          this._photoStatus.textContent = 'No photo selected.';
         }
-        reader.readAsDataURL(this._selectedPhotoFile);
       }
     });
   }
@@ -261,7 +364,8 @@ export default class AddStoryPageView {
       if (this._startCameraButton.style.display !== 'none') {
           this._startCameraButton.focus();
       } else if (this._photoFileInput) {
-          document.querySelector('label[for="photo-file-input"]').focus();
+          const fileInputLabel = document.querySelector('label[for="photo-file-input"]');
+          if (fileInputLabel) fileInputLabel.focus();
       }
       return null;
     }
@@ -306,7 +410,7 @@ export default class AddStoryPageView {
     if (this._latitudeInput) this._latitudeInput.value = '';
     if (this._longitudeInput) this._longitudeInput.value = '';
     if (this._selectedCoordsInfo) this._selectedCoordsInfo.textContent = 'Coordinates: Not selected';
-    if (this._mapMarker) {
+    if (this._mapMarker && this._mapMarker.remove) {
         this._mapMarker.remove();
         this._mapMarker = null;
     }

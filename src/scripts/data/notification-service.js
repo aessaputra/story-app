@@ -5,14 +5,17 @@ const NotificationApiService = {
   async subscribe(subscription) {
     const token = AuthService.getToken();
     if (!token) {
-      return Promise.reject('Authentication token not found.');
+      console.error('Push Subscription Error: Authentication token not found.');
+      return Promise.reject(new Error('Authentication token not found.'));
     }
 
     const subscriptionObject = subscription.toJSON();
     const payload = {
       endpoint: subscriptionObject.endpoint,
-      p256dh: subscriptionObject.keys.p256dh,
-      auth: subscriptionObject.keys.auth,
+      keys: {
+        p256dh: subscriptionObject.keys.p256dh,
+        auth: subscriptionObject.keys.auth,
+      },
     };
 
     try {
@@ -26,11 +29,15 @@ const NotificationApiService = {
       });
 
       const responseJson = await response.json();
-      if (responseJson.error) {
-        throw new Error(responseJson.message || 'Failed to subscribe to Dicoding push notifications.');
+      if (!response.ok || responseJson.error) {
+        const errorMessage = responseJson.message || `Failed to subscribe to push notifications. Status: ${response.status}`;
+        console.error('Push Subscription Error:', errorMessage, responseJson);
+        throw new Error(errorMessage);
       }
+      console.log('Push notification subscribed successfully:', responseJson);
       return responseJson;
     } catch (error) {
+      console.error('Network or other error during push subscription:', error);
       throw error;
     }
   },
@@ -38,10 +45,12 @@ const NotificationApiService = {
   async unsubscribe(subscription) {
     const token = AuthService.getToken();
     if (!token) {
-      return Promise.reject('Authentication token not found.');
+      console.error('Push Unsubscription Error: Authentication token not found.');
+      return Promise.reject(new Error('Authentication token not found.'));
     }
     if (!subscription || !subscription.endpoint) {
-      return Promise.reject('Invalid subscription object.');
+      console.error('Push Unsubscription Error: Invalid subscription object.');
+      return Promise.reject(new Error('Invalid subscription object for unsubscribe.'));
     }
 
     const payload = {
@@ -59,11 +68,15 @@ const NotificationApiService = {
       });
 
       const responseJson = await response.json();
-      if (responseJson.error) {
-        throw new Error(responseJson.message || 'Failed to unsubscribe from Dicoding push notifications.');
+      if (!response.ok || responseJson.error) {
+        const errorMessage = responseJson.message || `Failed to unsubscribe from push notifications. Status: ${response.status}`;
+        console.error('Push Unsubscription Error:', errorMessage, responseJson);
+        throw new Error(errorMessage);
       }
+      console.log('Push notification unsubscribed successfully:', responseJson);
       return responseJson;
     } catch (error) {
+      console.error('Network or other error during push unsubscription:', error);
       throw error;
     }
   },

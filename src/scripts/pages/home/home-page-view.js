@@ -18,6 +18,15 @@ function createStoryItemTemplate(story) {
         ${(typeof story.lat === 'number' && typeof story.lon === 'number') ? 
           `<div id="map-${story.id}" class="story-item__map" style="height: 200px; width: 100%; margin-top:10px;" tabindex="-1" aria-label="Map location for story by ${storyName}"></div>`
           : '<p class="story-item__no-map">Location data not available for this story.</p>'}
+        
+        <button 
+          class="button-delete-cache" 
+          data-story-id="${story.id}" 
+          aria-label="Delete story by ${storyName} from cache"
+          style="background-color: #e74c3c; color: white; border: none; padding: 8px 12px; margin-top: 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem;"
+        >
+          Hapus dari Cache
+        </button>
       </div>
     </article>
   `;
@@ -30,6 +39,7 @@ export default class HomePageView {
     this._storiesListElement = null;
     this._maps = {};
     this._storyItems = [];
+    this._clearCacheButtonClickHandler = null;
   }
 
   render() {
@@ -51,12 +61,14 @@ export default class HomePageView {
     }
     this._storiesListElement.addEventListener('keydown', this._handleStoryItemKeydown.bind(this));
     
+    this._storiesListElement.addEventListener('click', this._handleDeleteStoryFromCacheClick.bind(this));
+    
     const clearCacheButton = document.querySelector('#clear-cache-button');
     if (clearCacheButton) {
         this._clearCacheButtonClickHandler = async () => {
             try {
                 await IndexedDBService.clearAllStories();
-                alert('Cached stories cleared! Please refresh.');
+                alert('Cached stories cleared! Please refresh or reload data.');
                 this.displayStories([]); 
             } catch (error) {
                 console.error('Failed to clear cached stories:', error);
@@ -67,6 +79,44 @@ export default class HomePageView {
     }
     
     await this._loadAndDisplayStories();
+  }
+
+  async _handleDeleteStoryFromCacheClick(event) {
+    if (event.target.classList.contains('button-delete-cache')) {
+      const storyId = event.target.dataset.storyId;
+      if (!storyId) {
+        console.warn('Story ID not found on delete button.');
+        return;
+      }
+
+      const userConfirmed = confirm(`Apakah Anda yakin ingin menghapus cerita (ID: ${storyId}) ini dari cache?`);
+      if (!userConfirmed) {
+        return;
+      }
+
+      try {
+        await IndexedDBService.deleteStory(storyId);
+        alert(`Story (ID: ${storyId}) berhasil dihapus dari cache.`);
+        
+        const storyElementToRemove = document.getElementById(`story-${storyId}`);
+        if (storyElementToRemove) {
+          storyElementToRemove.remove();
+          this._storyItems = this._storyItems.filter(item => item.id !== `story-${storyId}`);
+        }
+        
+        if (this._storiesListElement.childElementCount === 0) {
+            if (AuthService.isLoggedIn()) {
+              this._storiesListElement.innerHTML = '<p class="empty-message">No stories to display yet. Be the first to share!</p>';
+            } else {
+              this._storiesListElement.innerHTML = '<p class="empty-message">Please login to view stories or check your internet connection for cached data.</p>';
+            }
+        }
+
+      } catch (error) {
+        console.error(`Failed to delete story ${storyId} from cache:`, error);
+        alert(`Gagal menghapus story (ID: ${storyId}) dari cache.`);
+      }
+    }
   }
 
   async _loadAndDisplayStories() {
@@ -237,6 +287,9 @@ export default class HomePageView {
       }
     } else if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
+        if (event.target.classList.contains('button-delete-cache')) {
+            return;
+        }
         this._activateStoryItemInteractiveElements(target);
     }
   }
@@ -250,7 +303,9 @@ export default class HomePageView {
         markerElement.focus(); 
       }
     } else {
-        const firstInteractive = storyItemElement.querySelector('a[href], button, input, textarea, select, [tabindex="0"]');
+        const firstInteractive = storyItemElement.querySelector(
+            'a[href], button:not(.button-delete-cache), input, textarea, select, [tabindex="0"]:not(.button-delete-cache)'
+        );
         if(firstInteractive) {
             firstInteractive.focus();
         }
@@ -266,6 +321,7 @@ export default class HomePageView {
   unload() {
     if (this._storiesListElement) {
         this._storiesListElement.removeEventListener('keydown', this._handleStoryItemKeydown.bind(this));
+        this._storiesListElement.removeEventListener('click', this._handleDeleteStoryFromCacheClick.bind(this));
     }
     const clearCacheButton = document.querySelector('#clear-cache-button');
     if (clearCacheButton && this._clearCacheButtonClickHandler) { 
