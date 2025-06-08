@@ -4,7 +4,8 @@
   box-sizing: border-box;
 }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   line-height: 1.6;
   background-color: #f7f9fc;
   color: #333a40;
@@ -27,7 +28,7 @@ body {
   text-decoration: none;
   border-radius: 0 0 8px 0;
   transition: top 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 .skip-link:focus {
   top: 10px;
@@ -36,7 +37,7 @@ body {
 header {
   background-color: #72c2ff;
   padding-block: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.07);
   position: sticky;
   top: 0;
   z-index: 1050;
@@ -57,7 +58,7 @@ header {
 }
 .navigation-drawer {
   background-color: #ffffff;
-  box-shadow: 0 0 15px rgba(0,0,0,0.15);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   transform: translateX(-100%);
   transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: fixed;
@@ -86,8 +87,9 @@ header {
   justify-content: center;
   transition: background-color 0.2s ease;
 }
-.drawer-button:hover, .drawer-button:focus {
-  background-color: rgba(0,0,0,0.05);
+.drawer-button:hover,
+.drawer-button:focus {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 .nav-list {
   list-style: none;
@@ -119,7 +121,7 @@ header {
   position: relative;
 }
 .main-content:focus {
-  outline: 3px solid #5DADE2 !important;
+  outline: 3px solid #5dade2 !important;
   box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.3) !important;
 }
 .story-item:focus,
@@ -127,7 +129,7 @@ header {
   outline: 3px solid #8e44ad !important;
   box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.3) !important;
 }
-[tabindex="-1"]:not(:focus) {
+[tabindex='-1']:not(:focus) {
   outline: none;
 }
 footer {
@@ -154,14 +156,15 @@ footer {
   border: 1px solid #e0e6ed;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 5px 15px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04), 0 5px 15px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .story-item:hover {
   transform: translateY(-6px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.06), 0 10px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06), 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 .story-item__image {
   width: 100%;
@@ -214,18 +217,20 @@ footer {
   border-radius: 6px;
   text-align: center;
 }
-.add-story-container h1, .auth-page h1 {
+.add-story-container h1,
+.auth-page h1 {
   text-align: center;
   margin-bottom: 30px;
   font-size: 2.25rem;
   color: #2c3e50;
   font-weight: 600;
 }
-.add-story-form, .auth-form {
+.add-story-form,
+.auth-form {
   background-color: #ffffff;
   padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05), 0 6px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 6px 20px rgba(0, 0, 0, 0.08);
   max-width: 600px;
   margin: 20px auto;
 }
@@ -238,10 +243,10 @@ footer {
   font-weight: 600;
   color: #4a5568;
 }
-.form-group input[type="text"],
-.form-group input[type="password"],
-.form-group input[type="file"],
-.form-group input[type="email"],
+.form-group input[type='text'],
+.form-group input[type='password'],
+.form-group input[type='file'],
+.form-group input[type='email'],
 .form-group textarea {
   width: 100%;
   padding: 12px 15px;
@@ -250,15 +255,15 @@ footer {
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.form-group input[type="file"] {
+.form-group input[type='file'] {
   padding: 8px;
 }
-.form-group input[type="text"]:focus,
-.form-group input[type="password"]:focus,
-.form-group input[type="email"]:focus,
-.form-group input[type="file"]:focus,
+.form-group input[type='text']:focus,
+.form-group input[type='password']:focus,
+.form-group input[type='email']:focus,
+.form-group input[type='file']:focus,
 .form-group textarea:focus {
-  border-color: #5DADE2;
+  border-color: #5dade2;
   box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.2);
   outline: none;
 }
@@ -294,7 +299,7 @@ footer {
   border-color: #545b62;
 }
 .button-submit,
-.auth-form button[type="submit"] {
+.auth-form button[type='submit'] {
   display: block;
   width: 100%;
   padding: 14px 20px;
@@ -306,19 +311,19 @@ footer {
   cursor: pointer;
   font-size: 1.1rem;
   transition: background-color 0.25s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .button-submit:hover,
-.auth-form button[type="submit"]:hover {
+.auth-form button[type='submit']:hover {
   background-color: #2980b9;
   transform: translateY(-1px);
 }
 .button-submit:active,
-.auth-form button[type="submit"]:active {
+.auth-form button[type='submit']:active {
   transform: translateY(0px);
 }
 .button-submit:disabled,
-.auth-form button[type="submit"]:disabled {
+.auth-form button[type='submit']:disabled {
   background-color: #bdc3c7;
   color: #7f8c8d;
   cursor: not-allowed;
@@ -367,7 +372,9 @@ footer {
   color: #0f5132;
   border: 1px solid #badbcc;
 }
-.loading-message, .empty-message, .error-message {
+.loading-message,
+.empty-message,
+.error-message {
   text-align: center;
   font-size: 1.15rem;
   color: #6c757d;
@@ -418,7 +425,7 @@ footer {
   background-color: rgba(255, 255, 255, 0.8) !important;
   padding: 2px 6px !important;
   border-radius: 3px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .leaflet-popup-close-button {
   font-size: 1.6rem;
@@ -428,7 +435,8 @@ footer {
 .leaflet-popup-close-button:hover {
   color: #222;
 }
-.leaflet-marker-icon, .leaflet-marker-shadow {
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
   outline: none;
 }
 .leaflet-marker-icon:focus {
@@ -438,32 +446,50 @@ footer {
 /* Page transition animations */
 ::view-transition-old(root) {
   animation: 0.4s ease-out forwards slide-to-left;
-  /* animation: 0.3s ease-out forwards fade-out; */ /* Alternatif animasi */
 }
 
 ::view-transition-new(root) {
   animation: 0.4s ease-in forwards slide-from-right;
-  /* animation: 0.3s ease-in forwards fade-in; */ /* Alternatif animasi */
 }
 
 @keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-to-left {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-40px); opacity: 0; }
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
 }
 
 @keyframes slide-from-right {
-  from { transform: translateX(40px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 #main-content {
@@ -482,9 +508,79 @@ footer {
 }
 
 @keyframes fade-out-main {
-  to { opacity: 0; transform: scale(0.98); }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 @keyframes fade-in-main {
-  from { opacity: 0; transform: scale(1.02); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Styling for save/delete buttons on story items */
+.button-save-cache,
+.button-delete-cache,
+.button-delete-cached-story {
+  background-color: #e74c3c; /* Red for delete */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.button-save-cache {
+  background-color: #28a745; /* Green for save */
+}
+
+.button-save-cache:hover {
+  background-color: #218838;
+}
+
+.button-delete-cache:hover,
+.button-delete-cached-story:hover {
+  background-color: #c0392b;
+}
+
+/* Flexbox for the buttons within story-item__content */
+.story-item__content div[style*='display: flex'] {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap; /* To handle small screens */
+}
+
+/* Adjustments for the new cached-stories-container */
+.cached-stories-container h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2.25rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+#clear-all-cached-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: block;
+  margin: 20px auto;
+  transition: background-color 0.2s ease;
+}
+
+#clear-all-cached-button:hover {
+  background-color: #c0392b;
 }

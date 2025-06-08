@@ -63,7 +63,10 @@ class App {
 
     if (isLoggedIn) {
       navLinksHtml += `<li><a href="#/add">Add Story</a></li>`;
-      navLinksHtml += `<li><a href="#/logout" id="logout-link">Logout (${userName || 'User'})</a></li>`;
+      navLinksHtml += `<li><a href="#/cached-stories">Cerita Tersimpan</a></li>`;
+      navLinksHtml += `<li><a href="#/logout" id="logout-link">Logout (${
+        userName || 'User'
+      })</a></li>`;
     } else {
       navLinksHtml += `<li><a href="#/login">Login</a></li>`;
       navLinksHtml += `<li><a href="#/register">Register</a></li>`;
@@ -77,7 +80,8 @@ class App {
         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
           try {
             const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
+            const subscription =
+              await registration.pushManager.getSubscription();
             if (subscription) {
               await NotificationApiService.unsubscribe(subscription);
             }
@@ -111,26 +115,29 @@ class App {
       return;
     }
     if (url === '/logout') {
-      const logoutLinkHandler = this.#navigationDrawer.querySelector('#logout-link');
+      const logoutLinkHandler =
+        this.#navigationDrawer.querySelector('#logout-link');
       if (logoutLinkHandler) {
-         logoutLinkHandler.click();
+        logoutLinkHandler.click();
       } else {
         if (isLoggedIn) AuthService.logout();
         window.location.hash = '#/login';
       }
       return;
     }
-    
+
     let page = routes[url];
     if (!page) {
       window.location.hash = '#/404';
-      return; 
+      return;
     }
     if (!page) {
-        if (this.#content) this.#content.innerHTML = "<h1>Critical Error</h1><p>The application routing is broken.</p>";
-        this.#currentPage = null;
-        this.#updateNavLinks();
-        return;
+      if (this.#content)
+        this.#content.innerHTML =
+          '<h1>Critical Error</h1><p>The application routing is broken.</p>';
+      this.#currentPage = null;
+      this.#updateNavLinks();
+      return;
     }
 
     this.#currentPage = page;
@@ -147,10 +154,12 @@ class App {
         if (this.#content) this.#content.focus();
       } else if (
         activeElement === document.body ||
-        (this.#content && activeElement && !this.#content.contains(activeElement) &&
-         !activeElement.closest('header') &&
-         !activeElement.closest('.navigation-drawer') &&
-         activeElement !== this.#drawerButton)
+        (this.#content &&
+          activeElement &&
+          !this.#content.contains(activeElement) &&
+          !activeElement.closest('header') &&
+          !activeElement.closest('.navigation-drawer') &&
+          activeElement !== this.#drawerButton)
       ) {
         window.scrollTo(0, 0);
       }
